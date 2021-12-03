@@ -5,6 +5,9 @@ class CreateNode:
 
     def __init__(self,id,myAddr,sucAddr):
         self.id = id
+        self.predId = " "
+        self.predAddr = " "
+        self.sucId = " "
         self.myAddr = myAddr
         self.sucAddr = sucAddr
         self.rango = range.Range("","")

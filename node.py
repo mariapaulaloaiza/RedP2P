@@ -8,20 +8,22 @@ from range import randomString
 
 context = zmq.Context()
 
-pred = context.socket(zmq.REP)
+pred = context.socket(zmq.REP) 
 
 suc = context.socket(zmq.REQ)
 
 def conectar(nodo):
 
+    global suc
     if (Type=="bootstrap"):
         nodo.isFirst()
         pred.bind('tcp://*:'+nodo.myAddr) 
-      #  suc.connect('tcp://localhost:'+nodo.sucAddr)
+        print("boot if")
+        #suc.connect('tcp://localhost:'+nodo.myAddr)
         
         
     else:
-        pred.bind('tcp://*:'+nodo.myAddr) 
+        #pred.bind('tcp://*:'+nodo.myAddr) 
         suc.connect('tcp://localhost:'+nodo.sucAddr)
         msgsucc = [b'newNode',b'pred',nodo.id.encode(),nodo.myAddr.encode()]
         suc.send_multipart(msgsucc)
@@ -30,45 +32,51 @@ def conectar(nodo):
 
         print("escuchando...")
         msgpred = pred.recv_multipart()
-        print(msgpred[2]) 
-        print(nodo.sucAddr)
+        print(msgpred[0]) 
         nodoid = msgpred[2].decode("utf-8")
 
         if msgpred[0].decode("utf-8")=='newNode'and responsable(nodo.rango,int(nodoid)):
             msgRes = [b'responsable',b'si',nodo.id.encode(),nodo.myAddr.encode()]
-            print('hola primer if')
-            if nodo.sucAddr==0:
+            print('hola primer if {}'.format(nodo.sucAddr))
+            '''if nodo.sucAddr=='0':
                 print('hola sub if')
                 sucPort = msgpred[3].decode("utf-8")
                 nodo.sucAddr = sucPort 
+                print(nodo.sucAddr)
+                print('hola sub if 2')
                 suc.close()
-                suc.connect('tcp://localhost:'+sucPort)
-                print('hola sub if')
+                suc = context.socket(zmq.REQ)
+                suc.connect('tcp://localhost:'+ nodo.sucAddr)
                 suc.send_multipart(msgRes)
+                print('hola sub if 3')
             else:
-                suc.send_multipart(msgRes)
+                print("sub else")'''
+            pred.send_multipart(msgRes)
+            print('final 1')
 
-        elif msgpred[0].decode("utf-8")=='responsable' and msgpred[1]=='si':
-            print('hola segundo if')
-            id_predecesor = msgRes[2].decode("utf-8")
-            nodo.rango = range.Range(id_predecesor,nodo.id)
-            suc.connect('tcp://localhost:'+nodo.sucAddr)
-            msgRes = [b'pred',b'cambiar',nodo.id.encode(),SuccPORT.encode()] #nodo actual address 
+        else: 
+            print('else final')
+            msgRes = [b'aqui',b'nada',nodo.id.encode(),nodo.myAddr.encode()] 
+            #suc.close()
+            #suc = context.socket(zmq.REQ)
+            #suc.connect('tcp://localhost:'+ nodo.sucAddr)
             suc.send_multipart(msgRes)
-
-        elif msgpred[0].decode("utf-8")=='pred' and msgpred[1]=='si':
+            print('else final 2')
+            
+       
+        '''elif msgpred[0].decode("utf-8")=='responsable' and msgpred[1].decode("utf-8")=='si':
             print('hola segundo if')
-            id_predecesor = msgRes[2].decode("utf-8")
+            id_predecesor = msgpred[2].decode("utf-8")
             nodo.rango = range.Range(id_predecesor,nodo.id)
-            msgRes = [b'pred',b'cambiar',nodo.id.encode(),SuccPORT.encode()]
-            suc.send_multipart(msgRes)
+            #suc.connect('tcp://localhost:'+nodo.sucAddr)
+            suc.close()
+            suc = context.socket(zmq.REQ)
+            suc.connect('tcp://localhost:'+ nodo.sucAddr)
+            msgRes = [b'pred',b'cambiar',nodo.id.encode(),nodo.myAddr.encode()] #nodo actual address 
+            suc.send_multipart(msgRes)'''
         
-
-        else:
-            msgRes = [b'aqui',b'si',nodo.id.encode(),SuccPORT.encode()]
-            print("entre aca")
-            suc.send_multipart(msgRes)
- 
+       
+     
         
 def responsable(rango,id):
 

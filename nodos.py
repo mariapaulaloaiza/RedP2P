@@ -10,7 +10,7 @@ context = zmq.Context()
 
 
 
-def conectar(nodo):
+def conectar(nodo): #red de nodos servidores
 
     while True:
 
@@ -18,15 +18,21 @@ def conectar(nodo):
 
         msg = myconex.recv_multipart()
 
+        tipo = msg[0].decode("utf-8")
+
+        print(tipo)
+
         nodoId = int (msg[1].decode("utf-8"))
 
         nodoAddr =  msg[2].decode("utf-8")
 
-        if responsable(nodo.rango, int(nodoId)):
+        if tipo == 'conect' and responsable(nodo.rango, int(nodoId)):
 
-            print(nodo.predAddr)
+            lb = str(nodo.rango.lb)
 
-            msgpred =  [b'suc',nodo.id.encode(),nodo.myAddr.encode(),nodo.predAddr.encode()]
+            msgpred =  [b'suc',lb.encode(),nodo.myAddr.encode(),nodo.predAddr.encode()]
+
+            print(nodo.rango.lb)
 
             myconex.send_multipart(msgpred)
 
@@ -35,16 +41,29 @@ def conectar(nodo):
             nodo.predAddr = nodoAddr
 
             nodo.rango = range.Range(int(nodoId),int(nodo.id))
-
+ 
             if nodo.sucAddr=='0':
 
                 nodo.sucAddr = nodoAddr
+        
+        elif tipo == 'new suc':
+
+            print("entro al nuevo suc")
+
+            nodo.sucAddr = nodoAddr
+
+            nodo.sucId = nodoId
+
+            msgpred =  [b'sucesor cambiado',nodo.id.encode(),nodo.myAddr.encode(),nodo.predAddr.encode()]
+
+            myconex.send_multipart(msgpred)
+
         else:
 
             msgpred =  [b'no suc',nodo.id.encode(),nodo.sucAddr.encode(),nodo.predAddr.encode()]
 
             myconex.send_multipart(msgpred)
-       
+        
                  
         
 def responsable(rango,id):
@@ -69,6 +88,22 @@ def conexClient(port):
 
     return conexion
 
+def comunicatePred(port,nodoAddr,nodoId): #le dice a su nuevo predecesor que el es su nuevo sucesor
+    
+    conexion = context.socket(zmq.REQ) 
+
+    conexion.connect('tcp://localhost:'+str(port))
+
+    msg = [b'new suc',nodoId.encode(),nodoAddr.encode()] 
+
+    conexion.send_multipart(msg)
+
+    print('mensaje enviado')
+
+    conexion.close()
+
+    
+
 
 id = sys.argv[1]
 
@@ -81,15 +116,15 @@ Type = sys.argv[4]
 nodo = create_node.CreateNode(id,myPORT,SuccPORT)
 
 
-if (Type=="bootstrap"):
+if (Type=="bootstrap"): # si es el primer nodo
 
-    nodo.isFirst()
+    nodo.isFirst(int(nodo.id)) #su rango los incluye a todos
 
-    nodo.predAddr = myPORT
+    nodo.predAddr = myPORT 
 
     myconex = conexServer(nodo.myAddr)
 
-    conectar(nodo)
+    conectar(nodo) #entra a la red
 
 else:
 
@@ -103,12 +138,7 @@ else:
 
     tipo = msgnodo[0].decode("utf-8")
 
-    nodoId = msgnodo[1].decode("utf-8")
-
-    nodoAddr = msgnodo[2].decode("utf-8")
-
-    
-    
+   
    #Buscar responsable 
 
     nextAddr = msgnodo[2].decode("utf-8")
@@ -125,13 +155,21 @@ else:
 
         tipo =  msgnodo[0].decode("utf-8")
 
-        nextAddr = msgnodo[2].decode("utf-8")
+        nextAddr = msgnodo[2].decode("utf-8") #le manda la direccion del siguiente nodo
 
-    #cuando si es responsable    
+    #cuando encuentra el  responsable   
 
-    myconex = conexServer(nodo.myAddr)
+    suc.close()
+
+    nodoId = msgnodo[1].decode("utf-8")
+
+    nodoAddr = msgnodo[2].decode("utf-8")
 
     predAddr = msgnodo[3].decode("utf-8")
+
+    comunicatePred(predAddr,nodo.myAddr,nodo.id) 
+
+    myconex = conexServer(nodo.myAddr)
         
     nodo.rango = range.Range(int(nodoId),int(nodo.id))
 

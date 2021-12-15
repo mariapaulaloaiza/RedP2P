@@ -20,5 +20,5 @@ class CreateNode:
         else:
             print("Se ha creado el directorio:")
 
-    def isFirst(self):
-        self.rango = range.Range(0,1<<160)
+    def isFirst(self,id):
+        self.rango = range.Range(id,0)

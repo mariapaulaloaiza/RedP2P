@@ -35,11 +35,25 @@ def enviar(opcion,nombreArchivo,puerto):
         
         msgServidor = ConexionServidor.recv_multipart()
 
-        res = msgServidor[0].decode("utf-8")
+        respuesta = msgServidor[0].decode("utf-8")
 
         nextAddr = msgServidor[1].decode("utf-8")
 
-        print(res+nextAddr)
+        while respuesta!='responsable':
+
+            ConexionServidor.connect('tcp://localhost:'+nextAddr)
+
+            ConexionServidor.send_multipart([b'cliente',str(llaveArchivo).encode(),opcion.encode(),nombreArchivo.encode(),archivo_encode]) 
+
+            msgServidor = ConexionServidor.recv_multipart()
+
+            respuesta = msgServidor[0].decode("utf-8")
+
+            nextAddr = msgServidor[1].decode("utf-8") #direccion del siguiente nodo
+
+        diccionario[llaveArchivo]=nextAddr
+
+
 
 
 #Empieza

@@ -15,7 +15,7 @@ class CreateNode:
 
     def crear(self):
         try:
-            os.mkdir(self.nombre)
+            os.mkdir('servidor'+self.id)
         except OSError:
             print("La creación del directorio falló")
         else:

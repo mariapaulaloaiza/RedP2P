@@ -126,7 +126,7 @@ def ConexionConCliente(msg,nodo):
     
         if responsable(nodo.rango, int(llaveArchivo)):
 
-            recibirArchivo(archivo_encode,nombreArchivo,nodo.myAddr)
+            recibirArchivo(archivo_encode,nombreArchivo,nodo.myAddr,nodo.id)
        
         else:
 
@@ -136,20 +136,20 @@ def ConexionConCliente(msg,nodo):
 
     if opcion=='download':
 
-        enviarArchivo(nombreArchivo) 
+        enviarArchivo(nombreArchivo,nodo.id) 
 
 
-def recibirArchivo(archivo_encode,nombreArchivo,nodoAddr):
+def recibirArchivo(archivo_encode,nombreArchivo,nodoAddr,nodoId):
 
     print("recibiendo...")
 
     archivo_decode = base64.decodebytes(archivo_encode)
 
-    ubicacion = open('servidor1/'+nombreArchivo, 'ab')
+    ubicacion = open('servidor'+nodoId+'/'+nombreArchivo, 'ab')
 
     ubicacion.write(archivo_decode)
 
-    size_file = os.path.getsize('servidor1/'+nombreArchivo)
+    size_file = os.path.getsize('servidor'+nodoId+'/'+nombreArchivo)
 
     msgcliente =  [b'responsable',nodoAddr.encode(),b'archivo cargado', str(size_file).encode()] 
 
@@ -158,9 +158,9 @@ def recibirArchivo(archivo_encode,nombreArchivo,nodoAddr):
     myconex.send_multipart(msgcliente)
 
 
-def enviarArchivo(nombreArchivo):
+def enviarArchivo(nombreArchivo,nodoId):
 
-    ubicacion = open('servidor1/'+nombreArchivo, 'rb')
+    ubicacion = open('servidor'+nodoId+'/'+nombreArchivo, 'rb')
 
     print('enviando...')
 
@@ -182,6 +182,8 @@ SuccPORT = sys.argv[2]
 Type = sys.argv[3]
 
 nodo = create_node.CreateNode(myPORT,SuccPORT)
+
+nodo.crear()
 
 
 if (Type=="bootstrap"): # si es el primer nodo

@@ -1,10 +1,11 @@
 import os
 import range
+import generate_id
 
 class CreateNode:
 
-    def __init__(self,id,myAddr,sucAddr):
-        self.id = id
+    def __init__(self,myAddr,sucAddr):
+        self.id = generate_id.randomName()
         self.predId = " "
         self.predAddr = " "
         self.sucId = " "

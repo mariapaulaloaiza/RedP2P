@@ -3,6 +3,7 @@ import zmq
 import sys
 import create_node
 import range
+import base64
 from range import randomString
 
 
@@ -58,6 +59,11 @@ def conectar(nodo): #red de nodos servidores
 
             myconex.send_multipart(msgpred)
 
+        
+        elif tipo == 'cliente':
+
+           ConexionConCliente(msg,nodo)
+
         else:
 
             msgpred =  [b'no suc',nodo.id.encode(),nodo.sucAddr.encode(),nodo.predAddr.encode()]
@@ -72,6 +78,7 @@ def responsable(rango,id):
 
     return member
 
+
 def conexServer(port):
 
     conexion = context.socket(zmq.REP)
@@ -80,6 +87,7 @@ def conexServer(port):
 
     return conexion
 
+
 def conexClient(port):
 
     conexion = context.socket(zmq.REQ) 
@@ -87,6 +95,7 @@ def conexClient(port):
     conexion.connect('tcp://localhost:'+str(port))
 
     return conexion
+
 
 def comunicatePred(port,nodoAddr,nodoId): #le dice a su nuevo predecesor que el es su nuevo sucesor
     
@@ -102,18 +111,77 @@ def comunicatePred(port,nodoAddr,nodoId): #le dice a su nuevo predecesor que el 
 
     conexion.close()
 
+
+def ConexionConCliente(msg,nodo):
+
+    llaveArchivo = msg[1].decode("utf-8")
+
+    opcion = msg[2].decode("utf-8")
+
+    nombreArchivo = msg[3].decode("utf-8")
+
+    archivo_encode = msg[4]
+
+    if opcion=='upload': 
     
+        if responsable(nodo.rango, int(llaveArchivo)):
+
+            recibirArchivo(archivo_encode,nombreArchivo,nodo.myAddr)
+       
+        else:
+
+            msgcliente =  [b'no responsable',nodo.sucAddr.encode(),b'archivo descartado']  
+
+            myconex.send_multipart(msgcliente)
+
+    if opcion=='download':
+
+        enviarArchivo(nombreArchivo) 
 
 
-id = sys.argv[1]
+def recibirArchivo(archivo_encode,nombreArchivo,nodoAddr):
 
-myPORT = sys.argv[2]
+    print("recibiendo...")
 
-SuccPORT = sys.argv[3]
+    archivo_decode = base64.decodebytes(archivo_encode)
 
-Type = sys.argv[4]
+    ubicacion = open('servidor1/'+nombreArchivo, 'ab')
 
-nodo = create_node.CreateNode(id,myPORT,SuccPORT)
+    ubicacion.write(archivo_decode)
+
+    size_file = os.path.getsize('servidor1/'+nombreArchivo)
+
+    msgcliente =  [b'responsable',nodoAddr.encode(),b'archivo cargado', str(size_file).encode()] 
+
+    print('cantidad cargada: ',size_file)
+
+    myconex.send_multipart(msgcliente)
+
+
+def enviarArchivo(nombreArchivo):
+
+    ubicacion = open('servidor1/'+nombreArchivo, 'rb')
+
+    print('enviando...')
+
+    archivoLeido = ubicacion.read()
+
+    archivo_encode = base64.encodebytes(archivoLeido)
+
+    myconex.send_multipart([archivo_encode])
+
+    ubicacion.close() 
+
+
+#Empieza
+
+myPORT = sys.argv[1]
+
+SuccPORT = sys.argv[2]
+
+Type = sys.argv[3]
+
+nodo = create_node.CreateNode(myPORT,SuccPORT)
 
 
 if (Type=="bootstrap"): # si es el primer nodo
@@ -178,6 +246,9 @@ else:
     nodo.sucAddr = nodoAddr
 
     conectar(nodo) # entra a la red
+
+
+
             
 
            
